@@ -1,4 +1,4 @@
-name: Build Android DDTO (Manual Git Mode)
+name: Build Android DDTO (Ultra Fix)
 on:
   workflow_dispatch:
 
@@ -20,11 +20,15 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries (Force Manual)
+      - name: Install Libraries (Force Manual & No-Prompt)
         run: |
           haxelib setup ~/haxelib
           
-          # Bibliotecas padrão que já sabemos que funcionam
+          # Desativa prompts de senha e configura Git para HTTPS
+          export GIT_TERMINAL_PROMPT=0
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          
+          # Bibliotecas padrão (Haxelib Oficial)
           haxelib install lime 8.1.2 --always --quiet
           haxelib install openfl 9.3.3 --always --quiet
           haxelib install flixel 5.5.0 --always --quiet
@@ -36,25 +40,21 @@ jobs:
           haxelib install actuate --always --quiet
           haxelib install hxcpp --always --quiet
 
-          # Download Manual das bibliotecas Git problemáticas
-          # Faxe
-          git clone https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
+          # Download Manual via Git Nativo (Ignora falhas do haxelib git)
+          # Usando --depth 1 para baixar apenas o necessário e evitar erros de rede
+          git clone --depth 1 https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
           haxelib dev faxe ~/haxelib/faxe/git
 
-          # Polymod
-          git clone https://github.com/larsiusprime/polymod.git ~/haxelib/polymod/git
+          git clone --depth 1 https://github.com/larsiusprime/polymod.git ~/haxelib/polymod/git
           haxelib dev polymod ~/haxelib/polymod/git
 
-          # Discord RPC
-          git clone https://github.com/Aidan63/linc_discord-rpc.git ~/haxelib/discord_rpc/git
+          git clone --depth 1 https://github.com/Aidan63/linc_discord-rpc.git ~/haxelib/discord_rpc/git
           haxelib dev discord_rpc ~/haxelib/discord_rpc/git
 
-          # Android Tools
-          git clone https://github.com/MAJ0R-Z/extension-androidtools.git ~/haxelib/extension-androidtools/git
+          git clone --depth 1 https://github.com/MAJ0R-Z/extension-androidtools.git ~/haxelib/extension-androidtools/git
           haxelib dev extension-androidtools ~/haxelib/extension-androidtools/git
 
-          # LuaJit
-          git clone https://github.com/nebulazorua/linc_luajit.git ~/haxelib/linc_luajit/git
+          git clone --depth 1 https://github.com/nebulazorua/linc_luajit.git ~/haxelib/linc_luajit/git
           haxelib dev linc_luajit ~/haxelib/linc_luajit/git
 
       - name: Configure Android
