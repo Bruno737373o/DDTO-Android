@@ -1,4 +1,4 @@
-name: Build Android DDTO (Final Fix)
+name: Build Android DDTO (Fix Faxe)
 on:
   workflow_dispatch:
 
@@ -20,34 +20,33 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries (Fast Git Mode)
+      - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
           
-          # Configurações para garantir que o Git funcione sem erros
+          # Configuração Global para evitar erros de Clone e Perguntas
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global core.compression 0
-          git config --global http.postBuffer 524288000
           
-          # Instalando bibliotecas principais via Git (Oficiais e Estáveis)
-          haxelib git lime https://github.com/haxelime/lime.git --quiet
-          haxelib git openfl https://github.com/openfl/openfl.git --quiet
-          haxelib git flixel https://github.com/HaxeFlixel/flixel.git --quiet
+          # Bibliotecas Principais (Usando --always para aceitar dependências automaticamente)
+          haxelib git lime https://github.com/haxelime/lime.git --always --quiet
+          haxelib git openfl https://github.com/openfl/openfl.git --always --quiet
+          haxelib git flixel https://github.com/HaxeFlixel/flixel.git --always --quiet
           
-          # Bibliotecas base
-          haxelib install flixel-tools --quiet
-          haxelib install flixel-ui --quiet
-          haxelib install flixel-addons --quiet
-          haxelib install tjson --quiet
-          haxelib install hxvlc --quiet
+          # Bibliotecas Standard do Haxelib
+          haxelib install flixel-tools --always --quiet
+          haxelib install flixel-ui --always --quiet
+          haxelib install flixel-addons --always --quiet
+          haxelib install tjson --always --quiet
+          haxelib install hxvlc --always --quiet
+          haxelib install actuate --always --quiet
           
-          # Dependências específicas do DDTO+ (Repositórios Estáveis)
-          haxelib git faxe https://github.com/uhy9/faxe --quiet
-          haxelib git polymod https://github.com/larsiusprime/polymod.git --quiet
-          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --quiet
-          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools --quiet
-          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
-          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet
+          # Bibliotecas Específicas via Git (Links de alta compatibilidade)
+          haxelib git faxe https://github.com/Tandem-Yug/faxe.git --always --quiet
+          haxelib git polymod https://github.com/larsiusprime/polymod.git --always --quiet
+          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --always --quiet
+          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools --always --quiet
+          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --always --quiet
+          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --always --quiet
 
       - name: Configure Android
         run: |
@@ -63,6 +62,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android-APK
+          name: DDTO-Plus-Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
           
