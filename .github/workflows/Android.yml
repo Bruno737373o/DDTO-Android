@@ -1,0 +1,52 @@
+name: Android Build
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install Libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime
+          haxelib install openfl
+          haxelib install flixel
+          haxelib run lime setup flixel
+          haxelib run lime setup
+          haxelib install flixel-tools
+          haxelib install flixel-ui
+          haxelib install flixel-addons
+          haxelib install tjson
+          haxelib install hxvlc
+          haxelib git faxe https://github.com/uhy9/faxe
+          haxelib git polymod https://github.com/larsiusprime/polymod.git
+          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc
+          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools
+          haxelib run lime setup android
+
+      - name: Build Android
+        run: lime build android -release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: DDTO-Plus-APK
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
