@@ -1,4 +1,4 @@
-name: Build Android DDTO
+name: Build Android DDTO (Final Fix)
 on:
   workflow_dispatch:
 
@@ -20,20 +20,28 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries (Fast Mode)
+      - name: Install Libraries (Fast Git Mode)
         run: |
           haxelib setup ~/haxelib
-          # Ignoramos o servidor oficial lento e baixamos direto do GitHub
-          haxelib git lime https://github.com/mcproseventy/lime --quiet
-          haxelib git openfl https://github.com/openfl/openfl --quiet
-          haxelib git flixel https://github.com/HaxeFlixel/flixel --quiet
           
+          # Configurações para garantir que o Git funcione sem erros
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global core.compression 0
+          git config --global http.postBuffer 524288000
+          
+          # Instalando bibliotecas principais via Git (Oficiais e Estáveis)
+          haxelib git lime https://github.com/haxelime/lime.git --quiet
+          haxelib git openfl https://github.com/openfl/openfl.git --quiet
+          haxelib git flixel https://github.com/HaxeFlixel/flixel.git --quiet
+          
+          # Bibliotecas base
           haxelib install flixel-tools --quiet
           haxelib install flixel-ui --quiet
           haxelib install flixel-addons --quiet
           haxelib install tjson --quiet
           haxelib install hxvlc --quiet
           
+          # Dependências específicas do DDTO+ (Repositórios Estáveis)
           haxelib git faxe https://github.com/uhy9/faxe --quiet
           haxelib git polymod https://github.com/larsiusprime/polymod.git --quiet
           haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --quiet
@@ -41,8 +49,9 @@ jobs:
           haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
           haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet
 
-      - name: Configure Lime
+      - name: Configure Android
         run: |
+          haxelib run lime setup -alias -y
           haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
           haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
           haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
@@ -54,6 +63,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android
+          name: DDTO-Plus-Android-APK
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
           
