@@ -1,4 +1,4 @@
-name: Build Android DDTO (Ultra Fix)
+name: Build Android DDTO (Final Fix)
 on:
   workflow_dispatch:
 
@@ -8,6 +8,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -20,15 +22,14 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries (Force Manual & No-Prompt)
+      - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
           
-          # Desativa prompts de senha e configura Git para HTTPS
-          export GIT_TERMINAL_PROMPT=0
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          
-          # Bibliotecas padrão (Haxelib Oficial)
+          # Força o Git a usar o token do GitHub Actions para qualquer clone (Resolve erro 128)
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+          # Bibliotecas padrão
           haxelib install lime 8.1.2 --always --quiet
           haxelib install openfl 9.3.3 --always --quiet
           haxelib install flixel 5.5.0 --always --quiet
@@ -40,8 +41,7 @@ jobs:
           haxelib install actuate --always --quiet
           haxelib install hxcpp --always --quiet
 
-          # Download Manual via Git Nativo (Ignora falhas do haxelib git)
-          # Usando --depth 1 para baixar apenas o necessário e evitar erros de rede
+          # Tentativa de clone com o token injetado
           git clone --depth 1 https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
           haxelib dev faxe ~/haxelib/faxe/git
 
