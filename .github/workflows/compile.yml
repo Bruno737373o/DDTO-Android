@@ -1,0 +1,59 @@
+name: Build Android DDTO
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install Libraries (Fast Mode)
+        run: |
+          haxelib setup ~/haxelib
+          # Ignoramos o servidor oficial lento e baixamos direto do GitHub
+          haxelib git lime https://github.com/mcproseventy/lime --quiet
+          haxelib git openfl https://github.com/openfl/openfl --quiet
+          haxelib git flixel https://github.com/HaxeFlixel/flixel --quiet
+          
+          haxelib install flixel-tools --quiet
+          haxelib install flixel-ui --quiet
+          haxelib install flixel-addons --quiet
+          haxelib install tjson --quiet
+          haxelib install hxvlc --quiet
+          
+          haxelib git faxe https://github.com/uhy9/faxe --quiet
+          haxelib git polymod https://github.com/larsiusprime/polymod.git --quiet
+          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --quiet
+          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools --quiet
+          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
+          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet
+
+      - name: Configure Lime
+        run: |
+          haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
+          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config JAVA_HOME $JAVA_HOME
+
+      - name: Build Android
+        run: haxelib run lime build android -release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DDTO-Plus-Android
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
