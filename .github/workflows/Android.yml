@@ -1,4 +1,4 @@
-name: Android Build (Updated)
+name: Android Build (Fixed)
 on:
   push:
     branches: [ main ]
@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4 # Atualizado para v4
+        uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4 # Atualizado para v4
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -25,11 +25,9 @@ jobs:
       - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime
-          haxelib install openfl
-          haxelib install flixel
-          haxelib run lime setup flixel
-          haxelib run lime setup
+          haxelib install lime 8.1.2
+          haxelib install openfl 9.3.3
+          haxelib install flixel 5.5.0
           haxelib install flixel-tools
           haxelib install flixel-ui
           haxelib install flixel-addons
@@ -39,15 +37,24 @@ jobs:
           haxelib git polymod https://github.com/larsiusprime/polymod.git
           haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc
           haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools
-          haxelib run lime setup android
+          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git
+          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git
+
+      - name: Configure Android
+        run: |
+          haxelib run lime setup -alias -y
+          haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
+          # Comando para forçar o Lime a reconhecer os caminhos no ambiente do GitHub
+          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config JAVA_HOME $JAVA_HOME
 
       - name: Build Android
-        run: lime build android -release
+        run: haxelib run lime build android -release
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4 # Atualizado para v4 (Corrige o erro de depreciação)
+        uses: actions/upload-artifact@v4
         with:
           name: DDTO-Plus-APK
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
-          retention-days: 5
           
