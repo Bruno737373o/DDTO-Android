@@ -1,68 +1,63 @@
-# This is a basic workflow to help you get started with Actions
+name: Android Build (Fast Mode)
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-name: Android Build CI
-
-# Controls when the workflow will run
-on: [pull_request, workflow_dispatch]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: krdlab/setup-haxe@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          haxe-version: 4.2.5
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Cache haxelib path
-        uses: actions/cache@v2
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
         with:
-          path: |
-            %HAXELIB_ROOT%
-          key: ${{ runner.os }}-android
+          haxe-version: 4.3.1
 
-      - name: Setup Android SDK Tools
-        uses: android-actions/setup-android@v2.0.2
-
-      - name: Setup Java JDK
-        uses: actions/setup-java@v2.3.1
-        with:
-          distribution: 'zulu' # See 'Supported distributions' for available options
-          java-version: '11'
-
-      - uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r21e
-
-      # Runs a set of commands using the runners shell
-      - name: script run line haha
+      - name: Install Libraries
         run: |
-          mkdir -p "%HAXELIB_ROOT%"
-          haxelib setup "%HAXELIB_ROOT%"
-          haxelib install lime 7.9.0 --quiet
-          haxelib install openfl 9.1.0 --quiet
-          haxelib install flixel 4.11.0 --quiet
-          haxelib install hxcpp 4.2.1 --quiet
-          haxelib run lime setup
-          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
-          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_ROOT
-          haxelib run lime config JAVA_HOME $JAVA_HOME
-          haxelib run lime config ANDROID_SETUP true
-          haxelib install flixel-tools 1.5.1 --quiet
-          haxelib install flxanimate --quiet
-          haxelib install firetongue --quiet
-          haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
-          haxelib install flixel-ui 2.4.0 --quiet
-          haxelib install flixel-addons 2.11.0
-          haxelib run lime build android -DHXCPP_ANDROID_PLATFORM=26 -DPLATFORM=android-26
+          haxelib setup ~/haxelib
+          # Usando Git para bibliotecas grandes (evita lentidão e quedas)
+          haxelib git lime https://github.com/mcproseventy/lime --quiet
+          haxelib git openfl https://github.com/openfl/openfl --quiet
+          haxelib git flixel https://github.com/HaxeFlixel/flixel --quiet
           
-      - uses: actions/upload-artifact@v2
+          # Bibliotecas de suporte
+          haxelib install flixel-tools --quiet
+          haxelib install flixel-ui --quiet
+          haxelib install flixel-addons --quiet
+          haxelib install tjson --quiet
+          haxelib install hxvlc --quiet
+          
+          # Dependências específicas do DDTO+
+          haxelib git faxe https://github.com/uhy9/faxe --quiet
+          haxelib git polymod https://github.com/larsiusprime/polymod.git --quiet
+          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --quiet
+          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools --quiet
+          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --quiet
+          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet
+
+      - name: Configure Android Tools
+        run: |
+          haxelib run lime setup -alias -y
+          haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
+          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config JAVA_HOME $JAVA_HOME
+
+      - name: Build Android
+        run: haxelib run lime build android -release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: Android Build
-          path: export/release/android/bin/app/build/outputs/apk/debug
+          name: DDTO-Plus-Android-Build
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
