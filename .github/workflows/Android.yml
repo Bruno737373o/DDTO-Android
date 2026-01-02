@@ -1,4 +1,4 @@
-name: Android Build
+name: Android Build (Updated)
 on:
   push:
     branches: [ main ]
@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Atualizado para v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4 # Atualizado para v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -45,8 +45,9 @@ jobs:
         run: lime build android -release
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Atualizado para v4 (Corrige o erro de depreciação)
         with:
           name: DDTO-Plus-APK
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          retention-days: 5
           
