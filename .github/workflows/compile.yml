@@ -1,4 +1,4 @@
-name: Build Android DDTO (Fix Faxe)
+name: Build Android DDTO (Manual Git Mode)
 on:
   workflow_dispatch:
 
@@ -20,33 +20,42 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries
+      - name: Install Libraries (Force Manual)
         run: |
           haxelib setup ~/haxelib
           
-          # Configuração Global para evitar erros de Clone e Perguntas
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          
-          # Bibliotecas Principais (Usando --always para aceitar dependências automaticamente)
-          haxelib git lime https://github.com/haxelime/lime.git --always --quiet
-          haxelib git openfl https://github.com/openfl/openfl.git --always --quiet
-          haxelib git flixel https://github.com/HaxeFlixel/flixel.git --always --quiet
-          
-          # Bibliotecas Standard do Haxelib
+          # Bibliotecas padrão que já sabemos que funcionam
+          haxelib install lime 8.1.2 --always --quiet
+          haxelib install openfl 9.3.3 --always --quiet
+          haxelib install flixel 5.5.0 --always --quiet
           haxelib install flixel-tools --always --quiet
           haxelib install flixel-ui --always --quiet
           haxelib install flixel-addons --always --quiet
           haxelib install tjson --always --quiet
           haxelib install hxvlc --always --quiet
           haxelib install actuate --always --quiet
-          
-          # Bibliotecas Específicas via Git (Links de alta compatibilidade)
-          haxelib git faxe https://github.com/Tandem-Yug/faxe.git --always --quiet
-          haxelib git polymod https://github.com/larsiusprime/polymod.git --always --quiet
-          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --always --quiet
-          haxelib git extension-androidtools https://github.com/MAJ0R-Z/extension-androidtools --always --quiet
-          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit.git --always --quiet
-          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --always --quiet
+          haxelib install hxcpp --always --quiet
+
+          # Download Manual das bibliotecas Git problemáticas
+          # Faxe
+          git clone https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
+          haxelib dev faxe ~/haxelib/faxe/git
+
+          # Polymod
+          git clone https://github.com/larsiusprime/polymod.git ~/haxelib/polymod/git
+          haxelib dev polymod ~/haxelib/polymod/git
+
+          # Discord RPC
+          git clone https://github.com/Aidan63/linc_discord-rpc.git ~/haxelib/discord_rpc/git
+          haxelib dev discord_rpc ~/haxelib/discord_rpc/git
+
+          # Android Tools
+          git clone https://github.com/MAJ0R-Z/extension-androidtools.git ~/haxelib/extension-androidtools/git
+          haxelib dev extension-androidtools ~/haxelib/extension-androidtools/git
+
+          # LuaJit
+          git clone https://github.com/nebulazorua/linc_luajit.git ~/haxelib/linc_luajit/git
+          haxelib dev linc_luajit ~/haxelib/linc_luajit/git
 
       - name: Configure Android
         run: |
