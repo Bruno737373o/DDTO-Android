@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do Repositório
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Haxe
@@ -20,7 +20,7 @@ jobs:
         with:
           haxe-version: 4.3.6
 
-      - name: Setup Java JDK 17 (Necessário para as ferramentas do SDK)
+      - name: JDK 17 (Para o SDK)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -29,19 +29,19 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Switch to Java JDK 11 (Obrigatório para build Haxe/Lime antigo)
+      - name: Switch JDK 11 (Para o Build)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Setup Android NDK (Versão r21e estável para Haxe)
+      - name: Setup NDK r21e
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r21e
           local-path: ${{ github.workspace }}/android-ndk
 
-      - name: Instalar Bibliotecas Haxe (Haxelibs)
+      - name: Install Haxelibs
         run: |
           haxelib setup ~/haxelib
           haxelib install lime 7.9.0 --quiet
@@ -55,7 +55,7 @@ jobs:
           haxelib install flixel-addons 2.11.0 --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
 
-      - name: Configurar Lime para Android
+      - name: Configure Lime
         run: |
           haxelib run lime setup
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
@@ -63,13 +63,16 @@ jobs:
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
 
-      - name: Compilar para Android (Release)
-        # Este passo pode levar de 10 a 20 minutos
+      - name: Build Android
+        # O comando pode levar até 20 minutos. 
+        # Adicionei -Dno-deprecation-warnings para limpar o log se preferir.
         run: haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26
 
-      - name: Coletar e Enviar APK (Artefato)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DDTO-Android-Build
-          # O asterisco duplo garante que ele encontre o APK mesmo se a estrutura de pastas variar levemente
-          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          path: |
+            export/release/android/bin/app/build/outputs/apk/release/*.apk
+            export/release/android/bin/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
