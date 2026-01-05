@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar Dependências de Sistema (VLC/Lua)
+      - name: Instalar Dependências de Sistema
         run: |
           sudo apt-get update
           sudo apt-get install libvlc-dev libvlccore-dev liblua5.1-0-dev -y
@@ -42,6 +42,7 @@ jobs:
 
       - name: Setup NDK r21e
         uses: nttld/setup-ndk@v1
+        id: setup-ndk
         with:
           ndk-version: r21e
           local-path: ${{ github.workspace }}/android-ndk
@@ -59,21 +60,26 @@ jobs:
           haxelib install flixel-ui 2.4.0 --quiet
           haxelib install flixel-addons 2.11.0 --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
-          # Adicionando bibliotecas comuns em mods de FNF
           haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet
           haxelib install hscript --quiet
 
-      - name: Configure Lime
+      - name: Configure Lime & Fix Toolchain Path
         run: |
+          # Configuração padrão
           haxelib run lime setup
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
           haxelib run lime config ANDROID_NDK_ROOT ${{ github.workspace }}/android-ndk
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
+          
+          # Adicionando o compilador do NDK ao PATH do sistema para o hxcpp encontrar
+          echo "${{ github.workspace }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
       - name: Build Android
-        # Adicionado -Dno-deprecation-warnings para limpar o log e focar nos erros reais
-        run: haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
+        run: |
+          # Definindo variáveis de ambiente extras para o hxcpp
+          export ANDROID_NDK_ROOT=${{ github.workspace }}/android-ndk
+          haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
