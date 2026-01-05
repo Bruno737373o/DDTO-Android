@@ -17,14 +17,22 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Setup Java JDK
+      # Primeiro configuramos o Java 17 para que o SDK Manager funcione
+      - name: Setup Java JDK 17 (Para o SDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Agora mudamos para o Java 11, que é o que o Haxe/Lime espera
+      - name: Switch to Java JDK 11 (Para o Build)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '11'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
