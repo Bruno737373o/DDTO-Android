@@ -15,10 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Instalar Dependências de Sistema (VLC/Lua)
+        run: |
+          sudo apt-get update
+          sudo apt-get install libvlc-dev libvlccore-dev liblua5.1-0-dev -y
+
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.3.6
+          haxe-version: 4.2.5
 
       - name: JDK 17 (Para o SDK)
         uses: actions/setup-java@v4
@@ -54,6 +59,9 @@ jobs:
           haxelib install flixel-ui 2.4.0 --quiet
           haxelib install flixel-addons 2.11.0 --quiet
           haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
+          # Adicionando bibliotecas comuns em mods de FNF
+          haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet
+          haxelib install hscript --quiet
 
       - name: Configure Lime
         run: |
@@ -64,15 +72,11 @@ jobs:
           haxelib run lime config ANDROID_SETUP true
 
       - name: Build Android
-        # O comando pode levar até 20 minutos. 
-        # Adicionei -Dno-deprecation-warnings para limpar o log se preferir.
-        run: haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26
+        # Adicionado -Dno-deprecation-warnings para limpar o log e focar nos erros reais
+        run: haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DDTO-Android-Build
-          path: |
-            export/release/android/bin/app/build/outputs/apk/release/*.apk
-            export/release/android/bin/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
