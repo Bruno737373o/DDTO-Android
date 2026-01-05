@@ -15,9 +15,8 @@ jobs:
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
-          haxe-version: 4.2.5
+          haxe-version: 4.3.6 # Atualizado para a versão estável mais recente
 
-      # Primeiro configuramos o Java 17 para que o SDK Manager funcione
       - name: Setup Java JDK 17 (Para o SDK)
         uses: actions/setup-java@v4
         with:
@@ -27,7 +26,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Agora mudamos para o Java 11, que é o que o Haxe/Lime espera
       - name: Switch to Java JDK 11 (Para o Build)
         uses: actions/setup-java@v4
         with:
@@ -48,7 +46,7 @@ jobs:
           haxelib install flixel 4.11.0 --quiet
           haxelib install hxcpp 4.2.1 --quiet
           haxelib install flixel-tools 1.5.1 --quiet
-          haxelib install flxanimate --quiet
+          haxelib install flxanimate 3.0.4 --quiet # Versão específica para evitar o erro do '?'
           haxelib install firetongue --quiet
           haxelib install flixel-ui 2.4.0 --quiet
           haxelib install flixel-addons 2.11.0 --quiet
@@ -70,3 +68,4 @@ jobs:
         with:
           name: Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
