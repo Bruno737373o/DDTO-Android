@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar Dependências de Sistema
+      - name: Instalar Dependências de Sistema (VLC/Lua)
         run: |
           sudo apt-get update
           sudo apt-get install libvlc-dev libvlccore-dev liblua5.1-0-dev -y
@@ -42,7 +42,6 @@ jobs:
 
       - name: Setup NDK r21e
         uses: nttld/setup-ndk@v1
-        id: setup-ndk
         with:
           ndk-version: r21e
           local-path: ${{ github.workspace }}/android-ndk
@@ -63,26 +62,38 @@ jobs:
           haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet
           haxelib install hscript --quiet
 
-      - name: Configure Lime & Fix Toolchain Path
+      - name: Auto-Patch Project.xml & KeyBind Error
         run: |
-          # Configuração padrão
+          # 1. Remove referências ao GCC que causam erro de compilador não encontrado
+          sed -i 's/<set name="gcc" value="1" \/>//g' Project.xml || true
+          
+          # 2. Corrige o erro de "Reification $" na linha 99 e 102 do KeyBindSubstate.hx
+          # Substitui o $ por _ para evitar que o Haxe pense que é uma Macro
+          if [ -f "source/KeyBindSubstate.hx" ]; then
+            sed -i '99s/\$/_/g' source/KeyBindSubstate.hx
+            sed -i '102s/\$/_/g' source/KeyBindSubstate.hx
+            echo "Patch aplicado em KeyBindSubstate.hx"
+          fi
+
+      - name: Configure Lime
+        run: |
           haxelib run lime setup
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
           haxelib run lime config ANDROID_NDK_ROOT ${{ github.workspace }}/android-ndk
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
-          
-          # Adicionando o compilador do NDK ao PATH do sistema para o hxcpp encontrar
+          # Adiciona o Clang ao PATH
           echo "${{ github.workspace }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
 
       - name: Build Android
         run: |
-          # Definindo variáveis de ambiente extras para o hxcpp
           export ANDROID_NDK_ROOT=${{ github.workspace }}/android-ndk
-          haxelib run lime build android -release -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
+          # Usamos -Dandroid-clang para garantir o uso do compilador correto
+          haxelib run lime build android -release -Dandroid-clang -DHXCPP_ARM64 -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: DDTO-Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
