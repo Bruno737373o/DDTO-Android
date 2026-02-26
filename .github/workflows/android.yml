@@ -1,99 +1,82 @@
-name: Android Build CI
-
+name: Build Android DDTO (Auto-Patch Mode)
 on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
-      - name: Instalar Dependências de Sistema (VLC/Lua)
-        run: |
-          sudo apt-get update
-          sudo apt-get install libvlc-dev libvlccore-dev liblua5.1-0-dev -y
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Setup Haxe
         uses: krdlab/setup-haxe@v1
         with:
           haxe-version: 4.2.5
 
-      - name: JDK 17 (Para o SDK)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Switch JDK 11 (Para o Build)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-
-      - name: Setup NDK r21e
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r21e
-          local-path: ${{ github.workspace }}/android-ndk
-
-      - name: Install Haxelibs
+      - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 7.9.0 --quiet
-          haxelib install openfl 9.1.0 --quiet
-          haxelib install flixel 4.11.0 --quiet
-          haxelib install hxcpp 4.2.1 --quiet
-          haxelib install flixel-tools 1.5.1 --quiet
-          haxelib install flxanimate 3.0.4 --quiet
-          haxelib install firetongue --quiet
-          haxelib install flixel-ui 2.4.0 --quiet
-          haxelib install flixel-addons 2.11.0 --quiet
-          haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
-          haxelib git hxvlc https://github.com/MAJigsaw77/hxvlc.git --quiet
-          haxelib install hscript --quiet
-
-      - name: Auto-Patch Project.xml & KeyBind Error
-        run: |
-          # 1. Remove referências ao GCC que causam erro de compilador não encontrado
-          sed -i 's/<set name="gcc" value="1" \/>//g' Project.xml || true
           
-          # 2. Corrige o erro de "Reification $" na linha 99 e 102 do KeyBindSubstate.hx
-          # Substitui o $ por _ para evitar que o Haxe pense que é uma Macro
-          if [ -f "source/KeyBindSubstate.hx" ]; then
-            sed -i '99s/\$/_/g' source/KeyBindSubstate.hx
-            sed -i '102s/\$/_/g' source/KeyBindSubstate.hx
-            echo "Patch aplicado em KeyBindSubstate.hx"
-          fi
+          # Autenticação para evitar erro 128 no Git
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
-      - name: Configure Lime
+          # Bibliotecas base
+          haxelib install lime 8.1.2 --always --quiet
+          haxelib install openfl 9.3.3 --always --quiet
+          haxelib install flixel 5.5.0 --always --quiet
+          haxelib install flixel-tools --always --quiet
+          haxelib install flixel-ui --always --quiet
+          haxelib install flixel-addons --always --quiet
+          haxelib install tjson --always --quiet
+          haxelib install hxvlc --always --quiet
+          haxelib install actuate --always --quiet
+          haxelib install hxcpp --always --quiet
+
+          # Bibliotecas Git via Clone Manual (Mais estável)
+          git clone --depth 1 https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
+          haxelib dev faxe ~/haxelib/faxe/git
+
+          git clone --depth 1 https://github.com/larsiusprime/polymod.git ~/haxelib/polymod/git
+          haxelib dev polymod ~/haxelib/polymod/git
+
+          git clone --depth 1 https://github.com/Aidan63/linc_discord-rpc.git ~/haxelib/discord_rpc/git
+          haxelib dev discord_rpc ~/haxelib/discord_rpc/git
+
+          git clone --depth 1 https://github.com/MAJ0R-Z/extension-androidtools.git ~/haxelib/extension-androidtools/git
+          haxelib dev extension-androidtools ~/haxelib/extension-androidtools/git
+
+          git clone --depth 1 https://github.com/nebulazorua/linc_luajit.git ~/haxelib/linc_luajit/git
+          haxelib dev linc_luajit ~/haxelib/linc_luajit/git
+
+      - name: Configure Android
         run: |
-          haxelib run lime setup
-          haxelib run lime config ANDROID_SDK $ANDROID_HOME
-          haxelib run lime config ANDROID_NDK_ROOT ${{ github.workspace }}/android-ndk
+          haxelib run lime setup -alias -y
+          haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
+          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
           haxelib run lime config JAVA_HOME $JAVA_HOME
-          haxelib run lime config ANDROID_SETUP true
-          # Adiciona o Clang ao PATH
-          echo "${{ github.workspace }}/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+
+      - name: Patch Source Code
+        run: |
+          # Corrige o erro de ponto e vírgula na linha 99 do KeyBindSubstate.hx
+          # O comando sed adiciona o ';' se ele estiver faltando
+          sed -i '99s/$/;/' source/KeyBindSubstate.hx
+          echo "Patch aplicado com sucesso no KeyBindSubstate.hx"
 
       - name: Build Android
-        run: |
-          export ANDROID_NDK_ROOT=${{ github.workspace }}/android-ndk
-          # Usamos -Dandroid-clang para garantir o uso do compilador correto
-          haxelib run lime build android -release -Dandroid-clang -DHXCPP_ARM64 -DHXCPP_ANDROID_PLATFORM=26 -Dno-deprecation-warnings
+        run: haxelib run lime build android -release
 
-      - name: Upload Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Android-Build
+          name: DDTO-Plus-Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
-          if-no-files-found: warn
