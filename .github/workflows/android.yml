@@ -1,4 +1,4 @@
-name: Build Android DDTO (Universal Fix)
+name: Build Android DDTO (Direct Download Mode)
 on:
   workflow_dispatch:
 
@@ -20,15 +20,11 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries
+      - name: Install Libraries (No-Git Strategy)
         run: |
           haxelib setup ~/haxelib
           
-          # FORÇA O GIT A USAR HTTPS SEM PEDIR USUÁRIO
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-          
-          # Bibliotecas padrão
+          # Bibliotecas padrão que funcionam
           haxelib install lime 8.1.2 --always --quiet
           haxelib install openfl 9.3.3 --always --quiet
           haxelib install flixel 5.5.0 --always --quiet
@@ -40,26 +36,24 @@ jobs:
           haxelib install actuate --always --quiet
           haxelib install hxcpp --always --quiet
 
-          # CLONAGEM MANUAL COM LINKS ATUALIZADOS
-          # Faxe (Link do SrtRuslan é o mais estável para Android)
-          git clone https://github.com/SrtRuslan/faxe.git ~/haxelib/faxe/git --depth 1
-          haxelib dev faxe ~/haxelib/faxe/git
+          # FUNÇÃO PARA BAIXAR ZIP E EXTRAIR (Bypass Git)
+          download_zip() {
+            local url=$1
+            local name=$2
+            echo "Baixando $name..."
+            curl -L $url -o /tmp/$name.zip
+            mkdir -p ~/haxelib/$name/git
+            unzip -q /tmp/$name.zip -d /tmp/$name-tmp
+            cp -R /tmp/$name-tmp/*/* ~/haxelib/$name/git
+            haxelib dev $name ~/haxelib/$name/git
+          }
 
-          # Polymod
-          git clone https://github.com/MasterAres157/polymod.git ~/haxelib/polymod/git --depth 1
-          haxelib dev polymod ~/haxelib/polymod/git
-
-          # Discord RPC
-          git clone https://github.com/Aidan63/linc_discord-rpc.git ~/haxelib/discord_rpc/git --depth 1
-          haxelib dev discord_rpc ~/haxelib/discord_rpc/git
-
-          # Android Tools (Link atualizado do MAJ0R-Z ou alternativo estável)
-          git clone https://github.com/MaysSperandio/extension-androidtools.git ~/haxelib/extension-androidtools/git --depth 1
-          haxelib dev extension-androidtools ~/haxelib/extension-androidtools/git
-
-          # LuaJit
-          git clone https://github.com/nebulazorua/linc_luajit.git ~/haxelib/linc_luajit/git --depth 1
-          haxelib dev linc_luajit ~/haxelib/linc_luajit/git
+          # Baixando as bibliotecas problemáticas via ZIP direto
+          download_zip "https://github.com/SrtRuslan/faxe/archive/refs/heads/main.zip" "faxe"
+          download_zip "https://github.com/MasterAres157/polymod/archive/refs/heads/master.zip" "polymod"
+          download_zip "https://github.com/Aidan63/linc_discord-rpc/archive/refs/heads/master.zip" "discord_rpc"
+          download_zip "https://github.com/MaysSperandio/extension-androidtools/archive/refs/heads/main.zip" "extension-androidtools"
+          download_zip "https://github.com/nebulazorua/linc_luajit/archive/refs/heads/master.zip" "linc_luajit"
 
       - name: Configure Android
         run: |
@@ -71,8 +65,7 @@ jobs:
 
       - name: Patch Source Code
         run: |
-          # Corrige o erro de ponto e vírgula na linha 99 do KeyBindSubstate.hx
-          sed -i '99s/$/;/' source/KeyBindSubstate.hx || echo "Aviso: KeyBindSubstate.hx não encontrado."
+          sed -i '99s/$/;/' source/KeyBindSubstate.hx || echo "Arquivo não encontrado."
 
       - name: Build Android
         run: haxelib run lime build android -release
