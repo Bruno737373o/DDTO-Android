@@ -1,4 +1,4 @@
-name: Build Android DDTO (Direct Download Mode)
+name: Build Android DDTO (Final Stability)
 on:
   workflow_dispatch:
 
@@ -20,40 +20,28 @@ jobs:
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries (No-Git Strategy)
+      - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
           
-          # Bibliotecas padrão que funcionam
-          haxelib install lime 8.1.2 --always --quiet
-          haxelib install openfl 9.3.3 --always --quiet
-          haxelib install flixel 5.5.0 --always --quiet
-          haxelib install flixel-tools --always --quiet
-          haxelib install flixel-ui --always --quiet
-          haxelib install flixel-addons --always --quiet
-          haxelib install tjson --always --quiet
-          haxelib install hxvlc --always --quiet
-          haxelib install actuate --always --quiet
-          haxelib install hxcpp --always --quiet
+          # Bibliotecas básicas
+          haxelib install lime 8.1.2 --always
+          haxelib install openfl 9.3.3 --always
+          haxelib install flixel 5.5.0 --always
+          haxelib install flixel-tools --always
+          haxelib install flixel-ui --always
+          haxelib install flixel-addons --always
+          haxelib install tjson --always
+          haxelib install hxvlc --always
+          haxelib install actuate --always
+          haxelib install hxcpp --always
 
-          # FUNÇÃO PARA BAIXAR ZIP E EXTRAIR (Bypass Git)
-          download_zip() {
-            local url=$1
-            local name=$2
-            echo "Baixando $name..."
-            curl -L $url -o /tmp/$name.zip
-            mkdir -p ~/haxelib/$name/git
-            unzip -q /tmp/$name.zip -d /tmp/$name-tmp
-            cp -R /tmp/$name-tmp/*/* ~/haxelib/$name/git
-            haxelib dev $name ~/haxelib/$name/git
-          }
-
-          # Baixando as bibliotecas problemáticas via ZIP direto
-          download_zip "https://github.com/SrtRuslan/faxe/archive/refs/heads/main.zip" "faxe"
-          download_zip "https://github.com/MasterAres157/polymod/archive/refs/heads/master.zip" "polymod"
-          download_zip "https://github.com/Aidan63/linc_discord-rpc/archive/refs/heads/master.zip" "discord_rpc"
-          download_zip "https://github.com/MaysSperandio/extension-androidtools/archive/refs/heads/main.zip" "extension-androidtools"
-          download_zip "https://github.com/nebulazorua/linc_luajit/archive/refs/heads/master.zip" "linc_luajit"
+          # Instalando bibliotecas via GIT usando o formato mais compatível do Haxelib
+          haxelib git faxe https://github.com/SrtRuslan/faxe --always
+          haxelib git polymod https://github.com/MasterAres157/polymod --always
+          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --always
+          haxelib git extension-androidtools https://github.com/MaysSperandio/extension-androidtools --always
+          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit --always
 
       - name: Configure Android
         run: |
@@ -65,7 +53,14 @@ jobs:
 
       - name: Patch Source Code
         run: |
-          sed -i '99s/$/;/' source/KeyBindSubstate.hx || echo "Arquivo não encontrado."
+          # Corrige o erro de ponto e vírgula na linha 99 do KeyBindSubstate.hx
+          # Usamos um comando que verifica se o arquivo existe antes de tentar editar
+          if [ -f "source/KeyBindSubstate.hx" ]; then
+            sed -i '99s/$/;/' source/KeyBindSubstate.hx
+            echo "Patch aplicado."
+          else
+            echo "Arquivo não encontrado, pulando patch."
+          fi
 
       - name: Build Android
         run: haxelib run lime build android -release
@@ -73,5 +68,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DDTO-Plus-Android-Build
+          name: DDTO-Plus-APK
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
