@@ -1,4 +1,4 @@
-name: Build Android DDTO (Auto-Patch Mode)
+name: Build Android DDTO (Mirror Fix)
 on:
   workflow_dispatch:
 
@@ -26,10 +26,10 @@ jobs:
         run: |
           haxelib setup ~/haxelib
           
-          # Autenticação para evitar erro 128 no Git
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-
-          # Bibliotecas base
+          # Configurações de segurança para o Git
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          
+          # Bibliotecas padrão do Haxelib
           haxelib install lime 8.1.2 --always --quiet
           haxelib install openfl 9.3.3 --always --quiet
           haxelib install flixel 5.5.0 --always --quiet
@@ -41,10 +41,13 @@ jobs:
           haxelib install actuate --always --quiet
           haxelib install hxcpp --always --quiet
 
-          # Bibliotecas Git via Clone Manual (Mais estável)
-          git clone --depth 1 https://github.com/Tandem-Yug/faxe.git ~/haxelib/faxe/git
+          # --- FIX PARA FAXE ---
+          # Tentando o repositório do Srt_Ruslan (comumente usado em Android)
+          git clone --depth 1 https://github.com/SrtRuslan/faxe.git ~/haxelib/faxe/git || \
+          git clone --depth 1 https://github.com/ashea-code/faxe.git ~/haxelib/faxe/git
           haxelib dev faxe ~/haxelib/faxe/git
 
+          # Outras bibliotecas Git
           git clone --depth 1 https://github.com/larsiusprime/polymod.git ~/haxelib/polymod/git
           haxelib dev polymod ~/haxelib/polymod/git
 
@@ -67,10 +70,8 @@ jobs:
 
       - name: Patch Source Code
         run: |
-          # Corrige o erro de ponto e vírgula na linha 99 do KeyBindSubstate.hx
-          # O comando sed adiciona o ';' se ele estiver faltando
-          sed -i '99s/$/;/' source/KeyBindSubstate.hx
-          echo "Patch aplicado com sucesso no KeyBindSubstate.hx"
+          # Aplica o ponto e vírgula na linha 99 do KeyBindSubstate.hx
+          sed -i '99s/$/;/' source/KeyBindSubstate.hx || echo "Arquivo não encontrado ou já corrigido"
 
       - name: Build Android
         run: haxelib run lime build android -release
