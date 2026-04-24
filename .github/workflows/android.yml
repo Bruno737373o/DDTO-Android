@@ -1,72 +1,59 @@
-name: Build Android DDTO (Final Stability)
-on:
-  workflow_dispatch:
+name: Android Build CI
+
+on: [pull_request, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Haxe
-        uses: krdlab/setup-haxe@v1
+      - uses: krdlab/setup-haxe@v1
         with:
           haxe-version: 4.2.5
 
-      - name: Install Libraries
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r21e
+
+      - name: Install Haxe Libraries
         run: |
           haxelib setup ~/haxelib
-          
-          # Bibliotecas básicas
-          haxelib install lime 8.1.2 --always
-          haxelib install openfl 9.3.3 --always
-          haxelib install flixel 5.5.0 --always
-          haxelib install flixel-tools --always
-          haxelib install flixel-ui --always
-          haxelib install flixel-addons --always
-          haxelib install tjson --always
-          haxelib install hxvlc --always
-          haxelib install actuate --always
-          haxelib install hxcpp --always
+          haxelib install lime 7.9.0 --quiet
+          haxelib install openfl 9.1.0 --quiet
+          haxelib install flixel 4.11.0 --quiet
+          haxelib install hxcpp 4.2.1 --quiet
+          haxelib install flixel-tools 1.5.1 --quiet
+          haxelib install flxanimate --quiet
+          haxelib install firetongue --quiet
+          haxelib install flixel-ui 2.4.0 --quiet
+          haxelib install flixel-addons 2.11.0 --quiet
+          haxelib git extension-webview https://github.com/TeamX02/extension-webview.git --quiet
 
-          # Instalando bibliotecas via GIT usando o formato mais compatível do Haxelib
-          haxelib git faxe https://github.com/SrtRuslan/faxe --always
-          haxelib git polymod https://github.com/MasterAres157/polymod --always
-          haxelib git discord_rpc https://github.com/Aidan63/linc_discord-rpc --always
-          haxelib git extension-androidtools https://github.com/MaysSperandio/extension-androidtools --always
-          haxelib git linc_luajit https://github.com/nebulazorua/linc_luajit --always
-
-      - name: Configure Android
+      - name: Configure Lime
         run: |
-          haxelib run lime setup -alias -y
-          haxelib run lime setup android "${{ github.workspace }}" "${{ steps.setup-java.outputs.path }}" "$ANDROID_SDK_ROOT" "$ANDROID_NDK_LATEST_HOME"
+          haxelib run lime setup
           haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
-          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_ROOT
           haxelib run lime config JAVA_HOME $JAVA_HOME
-
-      - name: Patch Source Code
-        run: |
-          # Corrige o erro de ponto e vírgula na linha 99 do KeyBindSubstate.hx
-          # Usamos um comando que verifica se o arquivo existe antes de tentar editar
-          if [ -f "source/KeyBindSubstate.hx" ]; then
-            sed -i '99s/$/;/' source/KeyBindSubstate.hx
-            echo "Patch aplicado."
-          else
-            echo "Arquivo não encontrado, pulando patch."
-          fi
+          haxelib run lime config ANDROID_SETUP true
 
       - name: Build Android
         run: haxelib run lime build android -release
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: DDTO-Plus-APK
+          name: DDTO-Android-Build
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
