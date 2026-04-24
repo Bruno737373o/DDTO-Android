@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Atualizado para v4
       - uses: actions/checkout@v4
 
       - uses: krdlab/setup-haxe@v1
@@ -15,13 +14,13 @@ jobs:
           haxe-version: 4.2.5
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v4 # Atualizado para v4
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '17' # Alterado para 17 para o SDK Manager funcionar
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3 # Atualizado para v3
+        uses: android-actions/setup-android@v3
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
@@ -45,8 +44,9 @@ jobs:
       - name: Configure Lime
         run: |
           haxelib run lime setup
-          haxelib run lime config ANDROID_SDK $ANDROID_SDK_ROOT
-          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_ROOT
+          # Usando as variáveis de ambiente padrão do runner do GitHub
+          haxelib run lime config ANDROID_SDK $ANDROID_HOME
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_HOME
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
 
@@ -54,9 +54,7 @@ jobs:
         run: haxelib run lime build android -release
 
       - name: Upload Artifact
-        # AQUI ESTAVA O ERRO: Atualizado para v4
-        uses: actions/upload-artifact@v4 
+        uses: actions/upload-artifact@v4
         with:
           name: DDTO-Android-Build
-          # O caminho deve apontar para o arquivo específico ou pasta
           path: export/release/android/bin/app/build/outputs/apk/release/*.apk
